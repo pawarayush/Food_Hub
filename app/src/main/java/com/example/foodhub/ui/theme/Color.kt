@@ -1,4 +1,4 @@
-package com.example.foodhub.ui.features.theme
+package com.example.foodhub.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

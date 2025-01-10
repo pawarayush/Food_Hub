@@ -1,4 +1,5 @@
 package com.example.foodhub.data.models
 
-class AuthResponse {
-}
+data class AuthResponse(
+    val token: String
+)

@@ -1,4 +1,4 @@
-package com.example.foodhub.ui.features.theme
+package com.example.foodhub.ui.theme
 
 import android.graphics.drawable.Icon
 import androidx.compose.foundation.Image

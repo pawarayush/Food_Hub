@@ -1,11 +1,10 @@
 package com.example.foodhub.ui.features.auth.signup
 
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.foodhub.data.FoodApi
+import com.example.foodhub.data.models.SignUpRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -18,7 +17,7 @@ class SignUpViewModel @Inject constructor(val foodApi : FoodApi):ViewModel() {
     private val _uiState = MutableStateFlow<SignUpEvent>(SignUpEvent.Nothing)
     val uiState = _uiState
 
-    private val _navigationEvent = MutableSharedFlow<SignupNavigation>()
+    private val _navigationEvent = MutableSharedFlow<SignupNavigationEvent>()
     val navigationEvent = _navigationEvent.asSharedFlow()
 
     private val _email = MutableStateFlow("")
@@ -42,20 +41,45 @@ class SignUpViewModel @Inject constructor(val foodApi : FoodApi):ViewModel() {
         _name.value = name
     }
 
-     fun onSignupClick() {
+     fun onSignUpClick() {
          viewModelScope.launch {
              _uiState.value = SignUpEvent.Loading
-             delay(2000)
+             try{
+
+                 val response = foodApi.signUp(
+                 SignUpRequest(
+                 name = name.value,
+                 email = email.value,
+                 password = password.value
+                 )
+
+             )
+                 if(response.token.isNotEmpty()){
+                     _uiState.value = SignUpEvent.Success
+                     _navigationEvent.emit(SignupNavigationEvent.NavigateToHome)
+
+                 }
+             }
+             catch (e:Exception){
+                  e.printStackTrace()
+                 _uiState.value = SignUpEvent.Error
+             }
              _uiState.value = SignUpEvent.Success
-             _navigationEvent.tryEmit(SignupNavigation.NavigateToHome)
+             _navigationEvent.tryEmit(SignupNavigationEvent.NavigateToHome)
          }
 
      }
 
+    fun onLoginClicked() {
+        viewModelScope.launch {
+            _navigationEvent.emit(SignupNavigationEvent.NavigateToLogin)
+        }
+    }
 
-    sealed class SignupNavigation{
-        object NavigateToLogin:SignupNavigation()
-        object NavigateToHome:SignupNavigation()
+
+    sealed class SignupNavigationEvent{
+        object NavigateToLogin:SignupNavigationEvent()
+        object NavigateToHome:SignupNavigationEvent()
     }
 
 

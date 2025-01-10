@@ -1,4 +1,4 @@
-package com.example.foodhub.ui.features.theme
+package com.example.foodhub.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.font.Font
