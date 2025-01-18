@@ -1,6 +1,6 @@
 package com.example.foodhub.ui.theme
 
-import android.graphics.drawable.Icon
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -26,8 +25,10 @@ import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -35,12 +36,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.foodhub.R
+import com.example.foodhub.ui.features.auth.BaseAuthViewModel
 
 @Composable
 fun GroupSocialButtons(
     color: Color = Color.White,
-    onFacebookClick: () -> Unit,
-    onGoogleClick: () -> Unit
+    viewModel: BaseAuthViewModel
     ) {
    Column {
 
@@ -50,7 +51,8 @@ fun GroupSocialButtons(
                 verticalAlignment = Alignment.CenterVertically
        ){
            HorizontalDivider(
-               modifier = Modifier.weight(1f)
+               modifier = Modifier
+                   .weight(1f)
                    .padding(horizontal = 16.dp),
                thickness = 1.dp,
                 color = color
@@ -64,6 +66,7 @@ fun GroupSocialButtons(
                 color = color
               )
        }
+       val context = LocalContext.current as ComponentActivity
        Row (
               modifier = Modifier.fillMaxWidth(),
               horizontalArrangement = Arrangement.SpaceBetween
@@ -71,14 +74,13 @@ fun GroupSocialButtons(
               SocialButtons(
                 icon = R.drawable.ic_facebook,
                 title = R.string.sign_with_facebook,
-                onFacebookClick
+                  {viewModel.onFacebookClicked(context)}
               )
               Spacer(modifier = Modifier.size(16.dp))
               SocialButtons(
                 icon = R.drawable.ic_google,
                 title = R.string.sign_with_google,
-                onGoogleClick
-              )
+                  {viewModel.onGoogleClicked(context)})
          }
 
    }
@@ -108,6 +110,40 @@ fun SocialButtons(
                 color = Color.Black
             )
         }
+    }
+}
+@Composable
+fun BasicDialog(title: String,description:String,onClick:()->Unit){
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = title,
+            color = Color.Black,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.size(8.dp))
+        Text(
+            text = description,
+            color = Color.DarkGray
+        )
+        Spacer(modifier = Modifier.size(16.dp))
+        Button(
+            onClick = onClick,
+            colors = ButtonDefaults.buttonColors(containerColor = Orange),
+           shape = RoundedCornerShape(32.dp)
+        ) {
+            Text(
+                text = stringResource(id = R.string.ok),
+
+                color = Color.White
+            )
+        }
+        
     }
 }
 

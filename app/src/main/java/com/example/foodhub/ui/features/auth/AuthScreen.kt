@@ -13,11 +13,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -31,16 +38,25 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.foodhub.R
+import com.example.foodhub.ui.navigation.Home
 import com.example.foodhub.ui.navigation.Login
 import com.example.foodhub.ui.navigation.SignUp
+import com.example.foodhub.ui.theme.BasicDialog
 import com.example.foodhub.ui.theme.GroupSocialButtons
 import com.example.foodhub.ui.theme.Orange
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AuthScreen(navController: NavController) {
+fun AuthScreen(navController: NavController,viewModel: AuthScreenViewModel= hiltViewModel()) {
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+    var showDialog by remember { mutableStateOf(false) }
     val imageSize = remember {
         mutableStateOf(IntSize.Zero)
     }
@@ -51,6 +67,27 @@ fun AuthScreen(navController: NavController) {
        ),
        startY = imageSize.value.height.toFloat() / 3
    )
+    LaunchedEffect(true) {
+        viewModel.navigationEvent.collectLatest { event ->
+            when(event) {
+                is AuthScreenViewModel.AuthNavigationEvent.NavigateToHome -> {
+                    navController.navigate(Home){
+                        popUpTo(com.example.foodhub.ui.navigation.AuthScreen){
+                            inclusive = true
+                        }
+                    }
+                }
+                is AuthScreenViewModel.AuthNavigationEvent.NavigateToSignUp -> {
+                    navController.navigate(SignUp)
+                }
+                is AuthScreenViewModel.AuthNavigationEvent.ShowErrorDialog -> {
+                    showDialog = true
+                }
+
+            }
+        }
+    }
+
 
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -116,7 +153,7 @@ fun AuthScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-           GroupSocialButtons(onFacebookClick = {}) { }
+           GroupSocialButtons(viewModel = viewModel)
             Spacer(modifier = Modifier.size(16.dp))
             Button(
                 onClick = { navController.navigate(SignUp) },
@@ -136,6 +173,26 @@ fun AuthScreen(navController: NavController) {
             }
         }
     }
+
+    if(showDialog){
+        ModalBottomSheet(onDismissRequest = { showDialog = false },sheetState=sheetState) {
+            BasicDialog(
+                title = viewModel.error,
+                description = viewModel.errorDescription,
+                onClick = {
+                    scope.launch {
+                        sheetState.hide()
+                        showDialog = false
+                    }
+                  }
+            )
+        }
+    }
+
+
+
+
+
 }
 
 @Preview(showBackground = true)

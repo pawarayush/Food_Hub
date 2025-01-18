@@ -1,14 +1,11 @@
 package com.example.foodhub.ui.features.auth.login
 
-import android.content.Context
-import android.util.Log
-import androidx.credentials.CredentialManager
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.foodhub.data.FoodApi
-import com.example.foodhub.data.auth.GoogleAuthUiProvider
-import com.example.foodhub.data.models.OAuthRequest
 import com.example.foodhub.data.models.SignInRequest
+import com.example.foodhub.data.remote.ApiResponse
+import com.example.foodhub.data.remote.safeApiCall
+import com.example.foodhub.ui.features.auth.BaseAuthViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,14 +13,16 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-@HiltViewModel
-class SignInViewModel @Inject constructor(val foodApi : FoodApi):ViewModel() {
 
-   val googleAuthUiProvider = GoogleAuthUiProvider()
+@HiltViewModel
+class SignInViewModel @Inject constructor(override val foodApi : FoodApi): BaseAuthViewModel(foodApi) {
+
+
+
     private val _uiState = MutableStateFlow<SignInEvent>(SignInEvent.Nothing)
     val uiState = _uiState
 
-    private val _navigationEvent = MutableSharedFlow<SignInNavigationEvent>()
+    private val _navigationEvent = MutableSharedFlow<SigInNavigationEvent>()
     val navigationEvent = _navigationEvent.asSharedFlow()
 
     private val _email = MutableStateFlow("")
@@ -43,75 +42,59 @@ class SignInViewModel @Inject constructor(val foodApi : FoodApi):ViewModel() {
     fun onSignInClick() {
         viewModelScope.launch {
             _uiState.value = SignInEvent.Loading
-            try{
 
-                val response = foodApi.signIn(
-                    SignInRequest(
-                        email = email.value,
-                        password = password.value
+
+                val response = safeApiCall {
+                    foodApi.signIn(
+                        SignInRequest(
+                            email = email.value,
+                            password = password.value
+                        )
+
                     )
-
-                )
-                if(response.token.isNotEmpty()){
-                    _uiState.value = SignInEvent.Success
-                    _navigationEvent.emit(SignInNavigationEvent.NavigateToHome)
-
                 }
-            }
-            catch (e:Exception){
-                e.printStackTrace()
-                _uiState.value = SignInEvent.Error
-            }
-            _uiState.value = SignInEvent.Success
-            _navigationEvent.tryEmit(SignInNavigationEvent.NavigateToHome)
+                when(response){
+                    is ApiResponse.Success -> {
+                            _uiState.value = SignInEvent.Success
+                            _navigationEvent.emit(SigInNavigationEvent.NavigateToHome)
+
+                    }
+                    else -> {
+                        val errr = (response as? ApiResponse.Error)?.code?:0
+                        error = "Sign In Failed"
+                        errorDescription="Failed to sign Up"
+                        when(errr){
+                            401 -> {
+                                errorDescription = "Invalid Credentials"
+                                errorDescription = "Please check your email and password"
+                            }
+                            500 -> errorDescription = "Server Error"
+                        }
+                        _uiState.value = SignInEvent.Error
+
+                    }
+                }
+
+
+
+
+
         }
 
     }
 
-    fun onGoogleSignInClick(context: Context) {
+
+
+    fun onSignUpClicked() {
         viewModelScope.launch {
-            _uiState.value = SignInEvent.Loading
-            val response = googleAuthUiProvider.signIn(
-                context,
-                CredentialManager.create(context)
-            )
-            if (response != null) {
-
-                val request = OAuthRequest(
-                    token = response.token,
-                    provider = "google"
-                )
-                val res=foodApi.oAuth(request)
-
-                if(res.token.isNotEmpty()){
-                    Log.d("SignInViewModel", "onGoogleSignInClick: ${res.token}")
-                    _uiState.value = SignInEvent.Success
-                    _navigationEvent.emit(SignInNavigationEvent.NavigateToHome)
-                } else{
-                    _uiState.value = SignInEvent.Error
-                }
-
-            } else{
-                _uiState.value = SignInEvent.Error
-          }
-      }
-    }
-
-
-
-
-    fun onSignUpClick() {
-        viewModelScope.launch {
-            _navigationEvent.emit(SignInNavigationEvent.NavigateToSignUp)
+            _navigationEvent.emit(SigInNavigationEvent.NavigateToSignUp)
         }
     }
 
 
-
-
-    sealed class SignInNavigationEvent{
-        object NavigateToSignUp:SignInNavigationEvent()
-        object NavigateToHome:SignInNavigationEvent()
+    sealed class SigInNavigationEvent{
+        object NavigateToSignUp:SigInNavigationEvent()
+        object NavigateToHome:SigInNavigationEvent()
     }
 
 
@@ -121,4 +104,44 @@ class SignInViewModel @Inject constructor(val foodApi : FoodApi):ViewModel() {
         object Error:SignInEvent()
         object Loading:SignInEvent()
     }
+
+    override fun loading() {
+        _uiState.value = SignInEvent.Loading
+    }
+
+    override fun onGoogleError(msg: String) {
+        viewModelScope.launch {
+            errorDescription =msg
+            error="Google Sign In Failed"
+            _uiState.value = SignInEvent.Error
+
+        }
+    }
+
+    override fun onFacebookError(msg: String) {
+       viewModelScope.launch {
+           errorDescription =msg
+           error="Facebook Sign In Failed"
+           _uiState.value = SignInEvent.Error
+       }
+    }
+
+    override fun onSocialLoginSuccess(token: String) {
+        viewModelScope.launch {
+            _uiState.value = SignInEvent.Success
+            _navigationEvent.emit(SigInNavigationEvent.NavigateToHome)
+        }
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
